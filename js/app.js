@@ -44,10 +44,10 @@ const createOffer = async () => {
     });
   };
 
-  // ica candidate
+  // ice candidate
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      console.log("candidate", event.candidate);
+      console.log("ICE candidate", event.candidate);
     }
   };
   // create offer and set local description
