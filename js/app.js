@@ -15,7 +15,7 @@ const servers = {
 const init = async () => {
   // Get local stream
   localStream = await navigator.mediaDevices.getUserMedia({
-    audio: true,
+    audio: false,
     video: true,
   });
   // Display local stream on #user1
