@@ -3,6 +3,13 @@ const user2 = document.getElementById("user2");
 let localStream = null;
 let remoteStream = null;
 let peerConnection = null;
+const ALGORA_APP_ID = `${APP_ID}`; // APP_ID is defined in my config.js file. Get it from your Agora dashboard.
+let token = null;
+
+// generate random number for uid
+const uid = String(Math.floor(Math.random() * 100000));
+let client;
+let channel;
 
 // servers
 const servers = {
@@ -13,24 +20,52 @@ const servers = {
   ],
 };
 const init = async () => {
+  // Initialize Agora client
+  client = AgoraRTM.createInstance(ALGORA_APP_ID);
+
+  // Display connection state changes
+  client.on("ConnectionStateChanged", function (state, reason) {
+    console.log("State changed To: " + state + " Reason: " + reason);
+  });
+
+  // respond to message
+  client.on("MessageFromPeer", handleMessageFromPeer);
+  // login
+  await client.login({ uid, token });
+  // create channel
+  channel = client.createChannel("main");
+
+  // join channel
+  await channel.join();
+
+  // check if user joined
+  channel.on("MemberJoined", handleUserJoined);
+
   // Get local stream
   localStream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
+    audio: true,
     video: true,
   });
   // Display local stream on #user1
   user1.srcObject = localStream;
-
-  // create offer
-  createOffer();
 };
 
-const createOffer = async () => {
+const createPeerConnection = async (MemberId) => {
   // Create peer connection
   peerConnection = new RTCPeerConnection(servers);
   // make remote stream available to #user2
   remoteStream = new MediaStream();
   user2.srcObject = remoteStream;
+
+  // Add local stream to peer connection and display it on #user1 if not already added
+  if (!localStream) {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: true,
+    });
+    // Display local stream on #user1
+    user1.srcObject = localStream;
+  }
 
   // Add local stream to peer connection
   localStream.getTracks().forEach((track) => {
@@ -47,14 +82,73 @@ const createOffer = async () => {
   // ice candidate
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      console.log("ICE candidate", event.candidate);
+      client.sendMessageToPeer(
+        {
+          text: JSON.stringify({
+            type: "candidate",
+            candidate: event.candidate,
+          }),
+        },
+        MemberId
+      );
     }
   };
+}
+
+const createOffer = async (MemberId) => {
+  // create peer connection
+  await createPeerConnection(MemberId);
   // create offer and set local description
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
 
-  console.log("Offer", offer);
+  // send offer to remote user
+  client.sendMessageToPeer(
+    {
+      text: JSON.stringify({
+        type: "offer",
+        offer,
+      }),
+    },
+    MemberId
+  );
 };
+
+function handleUserJoined(MemberId) {
+  console.log("User joined", MemberId);
+  // create offer
+  createOffer(MemberId);
+}
+
+async function handleMessageFromPeer(message, MemberId) {
+  message = JSON.parse(message.text);
+  if (message.type === "offer") {
+    createAnswer(MemberId, message.offer);
+  }
+  if (message.type === "answer") {
+    await peerConnection.setRemoteDescription(message.answer);
+  }
+}
+
+async function createAnswer(MemberId, offer){
+  // create peer connection
+  await createPeerConnection(MemberId);
+  
+  // set remote description
+  // await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  await peerConnection.setRemoteDescription(offer);
+
+  // create answer
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+  
+  // send answer to remote user
+  client.sendMessageToPeer({
+    text: JSON.stringify({
+      type: "answer",
+      answer,
+    })
+  }, MemberId);
+}
 
 init();
