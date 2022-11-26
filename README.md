@@ -45,3 +45,5 @@ use WebRTC + WebSock
 * [Socket.io](https://socket.io/) - Socket.IO enables real-time bidirectional event-based communication. It works on every platform, browser or device, focusing equally on reliability and speed.
 
 * [Algora](https://www.agora.io/en/) - Agora.io is a real-time video and voice platform that enables developers to build high-quality, real-time, and interactive voice and video applications.
+
+* [WebRTC](https://webrtc.org/) - WebRTC is a free, open project that provides browsers and mobile applications with Real-Time Communications (RTC) capabilities via simple APIs. The WebRTC components have been optimized to best serve this purpose.
