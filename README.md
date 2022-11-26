@@ -38,5 +38,10 @@ WebRTC uses UDP (User Datagram Protocol) which is faster than TCP (Transmission 
 - WebRTC has no built in signaling mechanism. It is up to the developer to implement a signaling mechanism. This is where WebSockets comes in. WebSockets is used to send signaling data between the peers.
 
 ## Real time communication Solution?
-use WebRTC + WebSockets
+use WebRTC + WebSock
 
+## Third party libraries used
+
+* [Socket.io](https://socket.io/) - Socket.IO enables real-time bidirectional event-based communication. It works on every platform, browser or device, focusing equally on reliability and speed.
+
+* [Algora](https://www.agora.io/en/) - Agora.io is a real-time video and voice platform that enables developers to build high-quality, real-time, and interactive voice and video applications.
