@@ -127,7 +127,13 @@ async function handleMessageFromPeer(message, MemberId) {
     createAnswer(MemberId, message.offer);
   }
   if (message.type === "answer") {
-    await peerConnection.setRemoteDescription(message.answer);
+    addAnswer(message.answer);
+  }
+
+  if (message.type === "candidate") {
+    if (peerConnection) {
+      peerConnection.addIceCandidate(message.candidate);
+    }
   }
 }
 
@@ -151,5 +157,15 @@ async function createAnswer(MemberId, offer){
     })
   }, MemberId);
 }
+
+async function addAnswer(answer){
+
+  if(!peerConnection.currentRemoteDescription){
+    // set remote description
+    peerConnection.setRemoteDescription(answer)
+  }
+  
+}
+
 
 init();
