@@ -9,3 +9,8 @@
     width: 100%;
     height: 100%;
 }
+
+/* hide user 2 */
+#user2 {
+    display: none;
+}
