@@ -3,11 +3,11 @@ const user2 = document.getElementById("user2");
 let localStream = null;
 let remoteStream = null;
 let peerConnection = null;
-const ALGORA_APP_ID = `${APP_ID}`; // APP_ID is defined in my config.js file. Get it from your Agora dashboard.
+const AGORA_APP_ID = APP_ID; // APP_ID is defined in my config.js file. Get it from your Agora dashboard.
 let token = null;
 
 // generate random number for uid
-const uid = String(Math.floor(Math.random() * 100000));
+const uid = String(Math.floor(Math.random() * 10000));
 let client;
 let channel;
 
@@ -21,7 +21,7 @@ const servers = {
 };
 const init = async () => {
   // Initialize Agora client
-  client = AgoraRTM.createInstance(ALGORA_APP_ID);
+  client = AgoraRTM.createInstance(AGORA_APP_ID);
 
   // Display connection state changes
   client.on("ConnectionStateChanged", function (state, reason) {
@@ -31,7 +31,7 @@ const init = async () => {
   // respond to message
   client.on("MessageFromPeer", handleMessageFromPeer);
   // login
-  await client.login({ uid, token });
+  await client.login({ uid, token});
   // create channel
   channel = client.createChannel("main");
 
@@ -98,6 +98,7 @@ const createPeerConnection = async (MemberId) => {
 const createOffer = async (MemberId) => {
   // create peer connection
   await createPeerConnection(MemberId);
+  
   // create offer and set local description
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
