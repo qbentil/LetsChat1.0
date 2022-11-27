@@ -41,6 +41,9 @@ const init = async () => {
   // check if user joined
   channel.on("MemberJoined", handleUserJoined);
 
+  // check if user left
+  channel.on("MemberLeft", handleUserLeft);
+
   // Get local stream
   localStream = await navigator.mediaDevices.getUserMedia({
     audio: true,
@@ -56,6 +59,9 @@ const createPeerConnection = async (MemberId) => {
   // make remote stream available to #user2
   remoteStream = new MediaStream();
   user2.srcObject = remoteStream;
+
+  // display user2
+  user2.style.display = "block";
 
   // Add local stream to peer connection and display it on #user1 if not already added
   if (!localStream) {
@@ -119,6 +125,14 @@ function handleUserJoined(MemberId) {
   console.log("User joined", MemberId);
   // create offer
   createOffer(MemberId);
+}
+function handleUserLeft(MemberId) {
+  console.log("User left", MemberId);
+  // close peer connection
+  peerConnection.close();
+  peerConnection = null;
+  // hide user2
+  user2.style.display = "none";
 }
 
 async function handleMessageFromPeer(message, MemberId) {
