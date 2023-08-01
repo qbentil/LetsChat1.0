@@ -1,3 +1,5 @@
+![image](https://github.com/qbentil/LetsChat1.0/assets/55560024/25a3d80c-c9ba-4293-be0b-68380dab094f)
+
 # LetsChat1.0
 
 As part of my introduction to RTC, I decided to build a simple chat application that allows users to chat with each other in real time video and audio. It is built using WebRTC and Socket.io.
