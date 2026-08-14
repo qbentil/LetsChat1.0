@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .env
+
+# CSCD 602 submission workspace (local only — not committed)
+submission/
+docs/cscd602/
