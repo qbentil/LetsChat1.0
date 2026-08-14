@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Box, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconPin } from "@tabler/icons-react";
 import type { Participant } from "../../types/room";
 import { ControlBar } from "./ControlBar";
@@ -24,6 +25,53 @@ function pickDefaultSpotlight(participants: Participant[]): Participant | undefi
   return withVideo ?? remote[0] ?? participants[0];
 }
 
+function FilmstripTiles({
+  participants,
+  pinnedUid,
+  onSelect,
+  horizontal,
+}: {
+  participants: Participant[];
+  pinnedUid: string | null;
+  onSelect: (uid: string) => void;
+  horizontal: boolean;
+}) {
+  if (horizontal) {
+    return (
+      <ScrollArea type="scroll" scrollbarSize={6}>
+        <Group gap="sm" wrap="nowrap" pb={4}>
+          {participants.map((participant) => (
+            <Box key={participant.uid} w={160} style={{ flexShrink: 0 }}>
+              <VideoTile
+                participant={participant}
+                size="filmstrip"
+                isPinned={pinnedUid === participant.uid}
+                onSelect={() => onSelect(participant.uid)}
+              />
+            </Box>
+          ))}
+        </Group>
+      </ScrollArea>
+    );
+  }
+
+  return (
+    <ScrollArea w={300} type="auto">
+      <Stack gap="sm" pr={4}>
+        {participants.map((participant) => (
+          <VideoTile
+            key={participant.uid}
+            participant={participant}
+            size="filmstrip"
+            isPinned={pinnedUid === participant.uid}
+            onSelect={() => onSelect(participant.uid)}
+          />
+        ))}
+      </Stack>
+    </ScrollArea>
+  );
+}
+
 export function GridLayout({
   participants,
   roomName,
@@ -37,6 +85,7 @@ export function GridLayout({
   onToggleChat,
 }: GridLayoutProps) {
   const [pinnedUid, setPinnedUid] = useState<string | null>(null);
+  const isMobile = useMediaQuery("(max-width: 48em)");
 
   const spotlight = useMemo(() => {
     if (pinnedUid) {
@@ -69,50 +118,35 @@ export function GridLayout({
       </Group>
 
       <Box flex={1} p="md" style={{ minHeight: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-        {/* Desktop / tablet: stage + vertical filmstrip */}
-        <Box visibleFrom="sm" style={{ flex: 1, minHeight: 0, display: "flex", gap: 12 }}>
-          <Box style={{ flex: 1, minWidth: 0, minHeight: 0, height: "100%" }}>
-            {spotlight && (
-              <VideoTile participant={spotlight} size="stage" isPinned showName />
-            )}
+        {isMobile ? (
+          <Box style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+            <Box style={{ flex: 1, minHeight: 0, height: "100%" }}>
+              {spotlight && (
+                <VideoTile participant={spotlight} size="stage" isPinned showName />
+              )}
+            </Box>
+            <FilmstripTiles
+              participants={filmstrip}
+              pinnedUid={pinnedUid}
+              onSelect={setPinnedUid}
+              horizontal
+            />
           </Box>
-          <ScrollArea w={300} type="auto">
-            <Stack gap="sm" pr={4}>
-              {filmstrip.map((participant) => (
-                <VideoTile
-                  key={participant.uid}
-                  participant={participant}
-                  size="filmstrip"
-                  isPinned={pinnedUid === participant.uid}
-                  onSelect={() => setPinnedUid(participant.uid)}
-                />
-              ))}
-            </Stack>
-          </ScrollArea>
-        </Box>
-
-        {/* Mobile: stage + horizontal filmstrip */}
-        <Box hiddenFrom="sm" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-          <Box style={{ flex: 1, minHeight: 0, height: "100%" }}>
-            {spotlight && (
-              <VideoTile participant={spotlight} size="stage" isPinned showName />
-            )}
+        ) : (
+          <Box style={{ flex: 1, minHeight: 0, display: "flex", gap: 12 }}>
+            <Box style={{ flex: 1, minWidth: 0, minHeight: 0, height: "100%" }}>
+              {spotlight && (
+                <VideoTile participant={spotlight} size="stage" isPinned showName />
+              )}
+            </Box>
+            <FilmstripTiles
+              participants={filmstrip}
+              pinnedUid={pinnedUid}
+              onSelect={setPinnedUid}
+              horizontal={false}
+            />
           </Box>
-          <ScrollArea type="scroll" scrollbarSize={6}>
-            <Group gap="sm" wrap="nowrap" pb={4}>
-              {filmstrip.map((participant) => (
-                <Box key={participant.uid} w={160} style={{ flexShrink: 0 }}>
-                  <VideoTile
-                    participant={participant}
-                    size="filmstrip"
-                    isPinned={pinnedUid === participant.uid}
-                    onSelect={() => setPinnedUid(participant.uid)}
-                  />
-                </Box>
-              ))}
-            </Group>
-          </ScrollArea>
-        </Box>
+        )}
       </Box>
 
       <Box p="md" style={{ display: "flex", justifyContent: "center" }}>

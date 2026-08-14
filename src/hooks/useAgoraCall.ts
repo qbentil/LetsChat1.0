@@ -118,6 +118,34 @@ export function useAgoraCall(): UseAgoraCallResult {
     setParticipants([localParticipant, ...remoteParticipants]);
   }, []);
 
+  const subscribeToRemoteUser = useCallback(
+    async (user: IAgoraRTCRemoteUser, mediaType: "audio" | "video" | "datachannel") => {
+      const client = clientRef.current;
+      if (!client || mediaType === "datachannel") return;
+
+      await client.subscribe(user, mediaType);
+      if (mediaType === "audio" && user.audioTrack) {
+        user.audioTrack.play();
+      }
+      syncParticipants();
+    },
+    [syncParticipants],
+  );
+
+  const subscribeToExistingUsers = useCallback(
+    async (client: IAgoraRTCClient) => {
+      for (const user of client.remoteUsers) {
+        if (user.hasAudio) {
+          await subscribeToRemoteUser(user, "audio");
+        }
+        if (user.hasVideo) {
+          await subscribeToRemoteUser(user, "video");
+        }
+      }
+    },
+    [subscribeToRemoteUser],
+  );
+
   const leaveCall = useCallback(async () => {
     joinedRef.current = false;
     joiningRef.current = false;
@@ -176,14 +204,15 @@ export function useAgoraCall(): UseAgoraCallResult {
 
         client.on("user-joined", () => syncParticipants());
         client.on("user-left", () => syncParticipants());
-        client.on("user-published", async (user, mediaType) => {
-          await client.subscribe(user, mediaType);
-          syncParticipants();
+        client.on("user-published", (user, mediaType) => {
+          void subscribeToRemoteUser(user, mediaType);
         });
         client.on("user-unpublished", () => syncParticipants());
 
         const rtcToken = await fetchAgoraToken(roomId, uid, "rtc");
         await client.join(AGORA_APP_ID, roomId, rtcToken, uid);
+
+        await subscribeToExistingUsers(client);
 
         if (client.remoteUsers.length + 1 > config.maxParticipants) {
           await leaveCall();
@@ -228,7 +257,7 @@ export function useAgoraCall(): UseAgoraCallResult {
         joiningRef.current = false;
       }
     },
-    [chat, leaveCall, syncParticipants],
+    [chat, leaveCall, subscribeToExistingUsers, subscribeToRemoteUser, syncParticipants],
   );
 
   const toggleMic = useCallback(async () => {

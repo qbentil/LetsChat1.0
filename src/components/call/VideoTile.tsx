@@ -18,28 +18,28 @@ export function VideoTile({
   showName = true,
 }: VideoTileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { uid, hasVideo, videoTrack, isLocal, displayName, hasAudio } = participant;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    container.innerHTML = "";
+    container.replaceChildren();
 
-    if (participant.hasVideo && participant.videoTrack) {
-      participant.videoTrack.play(container, {
+    if (hasVideo && videoTrack) {
+      videoTrack.play(container, {
         fit: "cover",
-        mirror: participant.isLocal,
+        mirror: isLocal,
       });
     }
 
     return () => {
-      if (!participant.isLocal && participant.videoTrack) {
-        participant.videoTrack.stop();
-      }
+      // Never call stop() on remote tracks — other tiles or re-mounts may still need them.
+      container.replaceChildren();
     };
-  }, [participant]);
+  }, [uid, hasVideo, videoTrack, isLocal]);
 
-  const initials = participant.displayName
+  const initials = displayName
     .split(" ")
     .map((part) => part[0])
     .join("")
@@ -77,7 +77,7 @@ export function VideoTile({
         bg="dark.7"
       />
 
-      {!participant.hasVideo && (
+      {!hasVideo && (
         <Box
           pos="absolute"
           inset={0}
@@ -110,25 +110,17 @@ export function VideoTile({
             background: "linear-gradient(transparent, rgba(0,0,0,0.75))",
           }}
         >
-          <GroupTileName participant={participant} />
+          <Text size="sm" c="white" fw={500} truncate>
+            {displayName}
+            {isLocal ? " (You)" : ""}
+          </Text>
+          {!hasAudio && (
+            <Badge size="xs" color="red" variant="filled" mt={4}>
+              Muted
+            </Badge>
+          )}
         </Box>
       )}
     </Paper>
-  );
-}
-
-function GroupTileName({ participant }: { participant: Participant }) {
-  return (
-    <Box>
-      <Text size="sm" c="white" fw={500} truncate>
-        {participant.displayName}
-        {participant.isLocal ? " (You)" : ""}
-      </Text>
-      {!participant.hasAudio && (
-        <Badge size="xs" color="red" variant="filled" mt={4}>
-          Muted
-        </Badge>
-      )}
-    </Box>
   );
 }
