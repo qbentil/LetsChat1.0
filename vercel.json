@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/agora/token.cjs": {
+      "includeFiles": "node_modules/agora-token/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/((?!api/).*)",
