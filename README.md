@@ -1,51 +1,67 @@
-![image](https://github.com/qbentil/LetsChat1.0/assets/55560024/25a3d80c-c9ba-4293-be0b-68380dab094f)
+# LetsChat 2.0
 
-# LetsChat1.0
+Professional multi-party video conferencing built with **React**, **Vite**, **Mantine**, and **Agora RTC**.
 
-As part of my introduction to RTC, I decided to build a simple chat application that allows users to chat with each other in real time video and audio. It is built using WebRTC and Socket.io.
-
+Create a meeting, share the link, and join with up to 10 participants. Includes **live chat**, **click-to-pin** spotlight layout for 3+ users, and **light/dark theme**.
 
 ## Features
 
-* Real time video and audio chat
-* Join a room and chat with other users
+- Up to **10 participants** per room (2 minimum)
+- **Shareable meeting links** with encoded room settings
+- **Identity modes**: anonymous or required display name
+- **Join policies**: start muted/unmuted, video optional or required
+- **Live in-call chat** via Agora RTM
+- **Adaptive UI**:
+  - 1–2 people: FaceTime-style full-screen + PiP
+  - 3+ people: Google Meet-style main stage + filmstrip; **click a tile to pin** them to the big screen
+- **Light / dark theme** toggle (Mantine, persisted automatically)
+- Fully responsive (mobile, tablet, desktop)
 
-## Limitations
-This is a very basic application and only allows a maximum of 2 users to chat with each other. It is also not very secure and does not have any authentication. It is only meant to be a proof of concept.
+## Quick start
 
-## What I learnt from this project
+```bash
+npm install
+cp .env.example .env   # add your Agora App ID
+npm run dev
+```
 
-* How to use WebRTC
-RTC is a set of JavaScript APIs that allow you to capture and share audio and video streams. It also allows you to share data between peers. 
+Open `http://localhost:5173`.
 
-WebRTC is very fast and efficient.
-- Connection is P2P	
-- Real time communication between browsers. Data is not sent to a server.
+### Environment
 
-## What is WebSockets?
+```env
+VITE_AGORA_APP_ID=your_agora_app_id
+```
 
-WebSockets is a protocol that allows for full duplex communication between a client and a server. It is a persistent connection between the client and the server. It is a TCP connection that is kept open and allows for real time communication between the client and the server.
+Get your App ID from the [Agora Console](https://console.agora.io/). For development, disable App Certificate or add a token server later.
 
-- connection is P2S (Peer to Server)
-- Real time communication between browsers and server. Data is sent to a server.
-- Latency is higher than WebRTC
+## Usage
 
-## Why use WebRTC instead of WebSockets?
-WebRTC uses UDP (User Datagram Protocol) which is faster than TCP (Transmission Control Protocol) which is used by WebSockets but 
+1. Open the home page and create a meeting.
+2. Configure name, capacity (2–10), identity, and audio/video rules.
+3. Copy the generated link and share it.
+4. In a call, use the **chat** button to open the message drawer.
+5. With 3+ participants, **click a filmstrip tile** to pin them to the main stage.
 
-- UDP is not reliable. It does not guarantee delivery of data.
-- UDP is not secure. It does not validate the data that is sent.
-- WebRTC is not supported by all browsers. It is supported by Chrome, Firefox and Opera. It is not supported by IE and Safari.
+## Scripts
 
-- WebRTC has no built in signaling mechanism. It is up to the developer to implement a signaling mechanism. This is where WebSockets comes in. WebSockets is used to send signaling data between the peers.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
 
-## Real time communication Solution?
-use WebRTC + WebSock
+## Architecture
 
-## Third party libraries used
+- **React + Vite + TypeScript + Mantine UI**
+- **Agora RTC** (`agora-rtc-sdk-ng`) for audio/video
+- **Agora RTM** (`agora-rtm-sdk`) for display names + live chat
+- **Room config** via URL today; ready for a future MongoDB API
 
-* [Socket.io](https://socket.io/) - Socket.IO enables real-time bidirectional event-based communication. It works on every platform, browser or device, focusing equally on reliability and speed.
+## Legacy version
 
-* [A gora](https://www.agora.io/en/) - Agora.io is a real-time video and voice platform that enables developers to build high-quality, real-time, and interactive voice and video applications.
+The original vanilla WebRTC proof-of-concept (2-user limit) is in [`legacy/`](legacy/).
 
-* [WebRTC](https://webrtc.org/) - WebRTC is a free, open project that provides browsers and mobile applications with Real-Time Communications (RTC) capabilities via simple APIs. The WebRTC components have been optimized to best serve this purpose.
+## License
+
+MIT
