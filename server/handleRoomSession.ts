@@ -2,9 +2,9 @@ import {
   getRoomSessionStatus,
   joinRoomSession,
   leaveRoomSession,
-} from "../server/roomSessionStore";
+} from "./roomSessionStore";
 
-export function handleRoomSessionGet(roomId: string) {
+export async function handleRoomSessionGet(roomId: string) {
   if (!roomId) {
     return {
       status: 400,
@@ -12,10 +12,11 @@ export function handleRoomSessionGet(roomId: string) {
     };
   }
 
-  return getRoomSessionStatus(roomId).then((status) => ({
+  const status = await getRoomSessionStatus(roomId);
+  return {
     status: 200,
     body: status,
-  }));
+  };
 }
 
 export async function handleRoomSessionPost(

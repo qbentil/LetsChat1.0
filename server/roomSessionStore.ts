@@ -26,60 +26,70 @@ function redisConfig(): { url: string; token: string } | null {
   const token =
     process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN ?? "";
   if (!url || !token) return null;
-  return { url, token };
+  return { url: url.replace(/\/$/, ""), token };
 }
 
 function roomKey(roomId: string): string {
   return `letschat:room:${roomId}`;
 }
 
-async function redisGet(key: string): Promise<RoomSessionState | null> {
-  const config = redisConfig();
-  if (!config) return null;
-
-  const response = await fetch(`${config.url}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${config.token}` },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Redis GET failed (${response.status})`);
+function parseStoredState(raw: unknown): RoomSessionState | null {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as RoomSessionState;
+    } catch {
+      return null;
+    }
   }
-
-  const payload = (await response.json()) as { result?: RoomSessionState | null };
-  return payload.result ?? null;
+  return raw as RoomSessionState;
 }
 
-async function redisSet(key: string, value: RoomSessionState): Promise<void> {
-  const config = redisConfig();
-  if (!config) return;
-
-  const response = await fetch(`${config.url}/set/${encodeURIComponent(key)}`, {
+async function redisCommand(
+  config: { url: string; token: string },
+  command: (string | number)[],
+): Promise<unknown> {
+  const response = await fetch(config.url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(value),
+    body: JSON.stringify(command),
   });
 
   if (!response.ok) {
-    throw new Error(`Redis SET failed (${response.status})`);
+    throw new Error(`Redis command failed (${response.status})`);
   }
+
+  const payload = (await response.json()) as { result?: unknown };
+  return payload.result;
 }
 
 async function readState(roomId: string): Promise<RoomSessionState> {
-  if (redisConfig()) {
-    const stored = await redisGet(roomKey(roomId));
-    return stored ?? { ...EMPTY_STATE };
+  const config = redisConfig();
+  if (config) {
+    try {
+      const raw = await redisCommand(config, ["GET", roomKey(roomId)]);
+      const parsed = parseStoredState(raw);
+      if (parsed) return parsed;
+    } catch (error) {
+      console.error("Redis read failed, falling back to memory:", error);
+    }
   }
 
   return memoryMap().get(roomId) ?? { ...EMPTY_STATE };
 }
 
 async function writeState(roomId: string, state: RoomSessionState): Promise<void> {
-  if (redisConfig()) {
-    await redisSet(roomKey(roomId), state);
-    return;
+  const config = redisConfig();
+  if (config) {
+    try {
+      await redisCommand(config, ["SET", roomKey(roomId), JSON.stringify(state)]);
+      return;
+    } catch (error) {
+      console.error("Redis write failed, falling back to memory:", error);
+    }
   }
 
   memoryMap().set(roomId, state);
