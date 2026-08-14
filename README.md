@@ -45,6 +45,21 @@ During `yarn dev`, a local API at `/api/agora/token` generates RTC and RTM token
 
 Restart the dev server after updating `.env`.
 
+### Deploying to Vercel
+
+The token endpoint runs as a serverless function at `api/agora/token.ts`. In your Vercel project settings, add both environment variables:
+
+| Variable | Notes |
+|----------|--------|
+| `VITE_AGORA_APP_ID` | Used by the client build and the token API |
+| `AGORA_APP_CERTIFICATE` | Server-only — never exposed to the browser |
+
+Redeploy after adding env vars. Test with:
+
+`https://your-app.vercel.app/api/agora/token?channel=test&uid=123456&type=rtc`
+
+You should get JSON like `{ "token": "..." }`, not a 404 page.
+
 ## Usage
 
 1. Open the home page and create a meeting.
