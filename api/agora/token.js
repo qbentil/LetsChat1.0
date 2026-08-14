@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 const { RtcRole, RtcTokenBuilder, RtmTokenBuilder } = require("agora-token");
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24;
@@ -18,7 +21,7 @@ function generateToken(appId, appCertificate, channel, uid, type) {
   );
 }
 
-module.exports = (req, res) => {
+export default function handler(req, res) {
   try {
     if (req.method !== "GET") {
       res.setHeader("Allow", "GET");
@@ -56,4 +59,4 @@ module.exports = (req, res) => {
       error: error instanceof Error ? error.message : "Failed to generate token",
     });
   }
-};
+}

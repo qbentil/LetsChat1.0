@@ -47,7 +47,7 @@ Restart the dev server after updating `.env`.
 
 ### Deploying to Vercel
 
-The token endpoint runs as a serverless function at `api/agora/token.cjs`. In your Vercel project settings, add both environment variables for **Production** (and Preview if you test preview deploys):
+The token endpoint runs as a serverless function at `api/agora/token.js`. In your Vercel project settings, add both environment variables for **Production** (and Preview if you test preview deploys):
 
 | Variable | Notes |
 |----------|--------|
