@@ -5,6 +5,7 @@ import { ChatPanel } from "../components/call/ChatPanel";
 import {
   CallError,
   ConnectingOverlay,
+  MeetingEnded,
   RoomFull,
 } from "../components/call/CallStates";
 import { GridLayout } from "../components/call/GridLayout";
@@ -97,6 +98,17 @@ export function JoinPage() {
         <RoomFull
           roomName={parsed.config.name}
           maxParticipants={parsed.config.maxParticipants}
+          onGoHome={() => navigate("/")}
+        />
+      </LayoutShell>
+    );
+  }
+
+  if (call.status === "expired") {
+    return (
+      <LayoutShell withHeader={false}>
+        <MeetingEnded
+          roomName={parsed.config.name}
           onGoHome={() => navigate("/")}
         />
       </LayoutShell>

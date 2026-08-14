@@ -8,7 +8,16 @@ import type {
 import { AGORA_APP_ID, createAgoraClient, createLocalTracks } from "../lib/agora";
 import { getAgoraJoinErrorMessage } from "../lib/agoraErrors";
 import { fetchAgoraToken } from "../lib/fetchAgoraToken";
-import { connectRtmService, type RtmService } from "../lib/rtmService";
+import {
+  fetchRoomSessionStatus,
+  joinRoomSession,
+  leaveRoomSession,
+} from "../lib/roomSession";
+import {
+  attachRtcMessaging,
+  type CallMessagingService,
+  type RtcMessagingHandle,
+} from "../lib/rtcMessaging";
 import { getAnonymousName, getSessionUid } from "../services/roomConfig";
 import { useCallChat } from "./useCallChat";
 import type { CallStatus, JoinOptions, Participant } from "../types/room";
@@ -82,8 +91,12 @@ export function useAgoraCall(): UseAgoraCallResult {
   const joinedRef = useRef(false);
   const joiningRef = useRef(false);
   const displayNamesRef = useRef<Map<string, string>>(new Map());
-  const rtmRef = useRef<RtmService | null>(null);
+  const messagingRef = useRef<CallMessagingService | null>(null);
+  const messagingHandleRef = useRef<RtcMessagingHandle | null>(null);
   const audioPublishedRef = useRef(false);
+  const activeRoomIdRef = useRef("");
+  const activeParticipantIdRef = useRef("");
+  const sessionJoinedRef = useRef(false);
 
   const [status, setStatus] = useState<CallStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +107,7 @@ export function useAgoraCall(): UseAgoraCallResult {
   const [localUid, setLocalUid] = useState("");
   const [localDisplayName, setLocalDisplayName] = useState("");
 
-  const chat = useCallChat(localUid, localDisplayName, rtmRef);
+  const chat = useCallChat(localUid, localDisplayName, messagingRef);
 
   const syncParticipants = useCallback(() => {
     const client = clientRef.current;
@@ -147,6 +160,17 @@ export function useAgoraCall(): UseAgoraCallResult {
   );
 
   const leaveCall = useCallback(async () => {
+    const roomId = activeRoomIdRef.current;
+    const participantId = activeParticipantIdRef.current;
+
+    if (sessionJoinedRef.current && roomId && participantId) {
+      sessionJoinedRef.current = false;
+      await leaveRoomSession(roomId, participantId).catch(() => undefined);
+    }
+
+    activeRoomIdRef.current = "";
+    activeParticipantIdRef.current = "";
+
     joinedRef.current = false;
     joiningRef.current = false;
     audioPublishedRef.current = false;
@@ -158,9 +182,10 @@ export function useAgoraCall(): UseAgoraCallResult {
     localAudioRef.current = null;
     localVideoRef.current = null;
 
-    if (rtmRef.current) {
-      await rtmRef.current.leave().catch(() => undefined);
-      rtmRef.current = null;
+    if (messagingHandleRef.current) {
+      messagingHandleRef.current.detach();
+      messagingHandleRef.current = null;
+      messagingRef.current = null;
     }
 
     const client = clientRef.current;
@@ -187,6 +212,8 @@ export function useAgoraCall(): UseAgoraCallResult {
 
       const { roomId, config, displayName } = options;
       const uid = getSessionUid(roomId);
+      activeRoomIdRef.current = roomId;
+      activeParticipantIdRef.current = uid;
       displayNamesRef.current.set(uid, displayName);
       setLocalUid(uid);
       setLocalDisplayName(displayName);
@@ -199,17 +226,37 @@ export function useAgoraCall(): UseAgoraCallResult {
       setCanToggleCamera(!cameraLocked);
 
       try {
+        const roomStatus = await fetchRoomSessionStatus(roomId);
+        if (roomStatus.expired) {
+          setStatus("expired");
+          return;
+        }
+
+        const session = await joinRoomSession(roomId, uid);
+        if (!session.ok || session.expired) {
+          setError(
+            session.error ??
+              "This meeting has ended and the link is no longer valid.",
+          );
+          setStatus("expired");
+          return;
+        }
+        sessionJoinedRef.current = true;
+
         const client = createAgoraClient();
         clientRef.current = client;
 
-        client.on("user-joined", () => syncParticipants());
+        client.on("user-joined", () => {
+          syncParticipants();
+          void messagingRef.current?.announceName();
+        });
         client.on("user-left", () => syncParticipants());
         client.on("user-published", (user, mediaType) => {
           void subscribeToRemoteUser(user, mediaType);
         });
         client.on("user-unpublished", () => syncParticipants());
 
-        const rtcToken = await fetchAgoraToken(roomId, uid, "rtc");
+        const rtcToken = await fetchAgoraToken(roomId, uid);
         await client.join(AGORA_APP_ID, roomId, rtcToken, uid);
 
         await subscribeToExistingUsers(client);
@@ -236,20 +283,28 @@ export function useAgoraCall(): UseAgoraCallResult {
         setStatus("connected");
         syncParticipants();
 
-        void connectRtmService(
-          roomId,
-          uid,
+        const messaging = attachRtcMessaging(
+          client,
           displayName,
           displayNamesRef,
           syncParticipants,
           chat.handleIncomingChat,
-        ).then((service) => {
-          if (service) {
-            rtmRef.current = service;
-            chat.markChatReady();
-          }
-        });
+        );
+        messagingHandleRef.current = messaging;
+        messagingRef.current = messaging;
+        chat.markChatReady();
+
+        void messaging.announceName();
+        window.setTimeout(() => {
+          void messaging.announceName();
+        }, 2000);
       } catch (joinError) {
+        if (sessionJoinedRef.current && activeRoomIdRef.current && uid) {
+          sessionJoinedRef.current = false;
+          await leaveRoomSession(activeRoomIdRef.current, uid).catch(
+            () => undefined,
+          );
+        }
         await leaveCall();
         setError(getAgoraJoinErrorMessage(joinError));
         setStatus("error");

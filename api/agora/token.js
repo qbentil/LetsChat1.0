@@ -1,15 +1,11 @@
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { RtcRole, RtcTokenBuilder, RtmTokenBuilder } = require("agora-token");
+const { RtcRole, RtcTokenBuilder } = require("agora-token");
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 24;
 
-function generateToken(appId, appCertificate, channel, uid, type) {
-  if (type === "rtm") {
-    return RtmTokenBuilder.buildToken(appId, appCertificate, uid, TOKEN_TTL_SECONDS);
-  }
-
+function generateToken(appId, appCertificate, channel, uid) {
   return RtcTokenBuilder.buildTokenWithUid(
     appId,
     appCertificate,
@@ -41,17 +37,12 @@ export default function handler(req, res) {
     const url = new URL(req.url ?? "/", "http://localhost");
     const channel = url.searchParams.get("channel") ?? "";
     const uid = url.searchParams.get("uid") ?? "";
-    const type = url.searchParams.get("type") ?? "rtc";
 
-    if (!uid || (type === "rtc" && !channel)) {
+    if (!uid || !channel) {
       return res.status(400).json({ error: "Missing channel or uid query parameters." });
     }
 
-    if (type !== "rtc" && type !== "rtm") {
-      return res.status(400).json({ error: "type must be rtc or rtm." });
-    }
-
-    const token = generateToken(appId, appCertificate, channel, uid, type);
+    const token = generateToken(appId, appCertificate, channel, uid);
     return res.status(200).json({ token });
   } catch (error) {
     console.error("Agora token error:", error);

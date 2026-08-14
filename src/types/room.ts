@@ -25,6 +25,7 @@ export type CallStatus =
   | "connecting"
   | "connected"
   | "room_full"
+  | "expired"
   | "error";
 
 export interface JoinOptions {

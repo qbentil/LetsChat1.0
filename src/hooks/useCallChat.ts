@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RtmService } from "../lib/rtmService";
+import type { CallMessagingService } from "../lib/rtcMessaging";
 import type { ChatMessage } from "../types/chat";
 
 export function useCallChat(
   localUid: string,
   localDisplayName: string,
-  rtmRef: React.MutableRefObject<RtmService | null>,
+  messagingRef: React.MutableRefObject<CallMessagingService | null>,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -38,7 +38,7 @@ export function useCallChat(
         return [...prev, message];
       });
 
-      if (!isChatOpenRef.current) {
+      if (!isChatOpenRef.current && payload.uid !== localUid) {
         setUnreadCount((count) => count + 1);
       }
     },
@@ -59,14 +59,23 @@ export function useCallChat(
       const trimmed = text.trim();
       if (!trimmed) return;
 
-      const rtm = rtmRef.current;
-      if (!rtm?.isConnected()) {
+      const messaging = messagingRef.current;
+      if (!messaging?.isConnected()) {
         throw new Error("Chat is not connected yet.");
       }
 
-      await rtm.sendChat(trimmed, localDisplayName);
+      const sentAt = Date.now();
+      // RTC stream messages are not echoed back to the sender — show locally immediately.
+      handleIncomingChat({
+        uid: localUid,
+        text: trimmed,
+        senderName: localDisplayName,
+        sentAt,
+      });
+
+      await messaging.sendChat(trimmed, localDisplayName, sentAt);
     },
-    [localDisplayName, rtmRef],
+    [handleIncomingChat, localDisplayName, localUid, messagingRef],
   );
 
   const resetChat = useCallback(() => {

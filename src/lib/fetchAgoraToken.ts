@@ -1,11 +1,5 @@
-export type AgoraTokenType = "rtc" | "rtm";
-
-export async function fetchAgoraToken(
-  channel: string,
-  uid: string,
-  type: AgoraTokenType = "rtc",
-): Promise<string> {
-  const params = new URLSearchParams({ channel, uid, type });
+export async function fetchAgoraToken(channel: string, uid: string): Promise<string> {
+  const params = new URLSearchParams({ channel, uid });
   const response = await fetch(`/api/agora/token?${params.toString()}`);
   const raw = await response.text();
 

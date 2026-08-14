@@ -1,4 +1,4 @@
-import { generateAgoraToken, type AgoraTokenType } from "./generateAgoraToken";
+import { generateAgoraToken } from "./generateAgoraToken";
 
 export interface AgoraTokenEnv {
   appId?: string;
@@ -8,14 +8,12 @@ export interface AgoraTokenEnv {
 export interface AgoraTokenQuery {
   channel: string;
   uid: string;
-  type: AgoraTokenType;
 }
 
 export function parseAgoraTokenQuery(searchParams: URLSearchParams): AgoraTokenQuery {
   return {
     channel: searchParams.get("channel") ?? "",
     uid: searchParams.get("uid") ?? "",
-    type: (searchParams.get("type") ?? "rtc") as AgoraTokenType,
   };
 }
 
@@ -24,7 +22,7 @@ export function handleAgoraTokenRequest(
   query: AgoraTokenQuery,
 ): { status: number; body: { token?: string; error?: string } } {
   const { appId, appCertificate } = env;
-  const { channel, uid, type } = query;
+  const { channel, uid } = query;
 
   if (!appId || !appCertificate) {
     return {
@@ -36,22 +34,15 @@ export function handleAgoraTokenRequest(
     };
   }
 
-  if (!uid || (type === "rtc" && !channel)) {
+  if (!uid || !channel) {
     return {
       status: 400,
       body: { error: "Missing channel or uid query parameters." },
     };
   }
 
-  if (type !== "rtc" && type !== "rtm") {
-    return {
-      status: 400,
-      body: { error: "type must be rtc or rtm." },
-    };
-  }
-
   try {
-    const token = generateAgoraToken({ appId, appCertificate }, channel, uid, type);
+    const token = generateAgoraToken({ appId, appCertificate }, channel, uid);
     return { status: 200, body: { token } };
   } catch (error) {
     return {

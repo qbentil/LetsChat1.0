@@ -10,7 +10,7 @@ Create a meeting, share the link, and join with up to 10 participants. Includes 
 - **Shareable meeting links** with encoded room settings
 - **Identity modes**: anonymous or required display name
 - **Join policies**: start muted/unmuted, video optional or required
-- **Live in-call chat** via Agora RTM
+- **Live in-call chat** over the RTC channel (no separate Signaling product required)
 - **Adaptive UI**:
   - 1–2 people: FaceTime-style full-screen + PiP
   - 3+ people: Google Meet-style main stage + filmstrip; **click a tile to pin** them to the big screen
@@ -41,9 +41,16 @@ AGORA_APP_CERTIFICATE=your_primary_certificate
 
 ### How tokens work
 
-During `yarn dev`, a local API at `/api/agora/token` generates RTC and RTM tokens using your certificate. The client fetches a token automatically before joining a call.
+During `yarn dev`, a local API at `/api/agora/token` generates **RTC** tokens using your certificate. The client fetches a token automatically before joining a call. Chat and display names travel over the same RTC connection — no RTM token or Signaling setup needed.
 
 Restart the dev server after updating `.env`.
+
+### Meeting link expiry
+
+When the **last participant leaves**, the meeting link is marked expired server-side and cannot be joined again.
+
+- **Local dev:** session state is kept in memory (resets when the dev server restarts).
+- **Vercel production:** add an [Upstash Redis](https://vercel.com/marketplace?category=storage&search=redis) integration so expiry persists across serverless instances. Without Redis, expiry may not work reliably in production.
 
 ### Deploying to Vercel
 
@@ -56,7 +63,7 @@ The token endpoint runs as a serverless function at `api/agora/token.js`. In you
 
 Redeploy after adding env vars. Test with:
 
-`https://your-app.vercel.app/api/agora/token?channel=test&uid=123456&type=rtc`
+`https://your-app.vercel.app/api/agora/token?channel=test&uid=123456`
 
 You should get JSON like `{ "token": "..." }`, not a 404 page.
 
@@ -79,8 +86,7 @@ You should get JSON like `{ "token": "..." }`, not a 404 page.
 ## Architecture
 
 - **React + Vite + TypeScript + Mantine UI**
-- **Agora RTC** (`agora-rtc-sdk-ng`) for audio/video
-- **Agora RTM** (`agora-rtm-sdk`) for display names + live chat
+- **Agora RTC** (`agora-rtc-sdk-ng`) for audio/video, in-call chat, and display names (RTC data stream)
 - **Room config** via URL today; ready for a future MongoDB API
 
 ## Legacy version
