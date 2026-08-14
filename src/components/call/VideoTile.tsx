@@ -47,26 +47,35 @@ export function VideoTile({
     .toUpperCase();
 
   const height = size === "stage" ? "100%" : undefined;
-  const minHeight = size === "stage" ? 240 : 100;
+  const minHeight = size === "stage" ? 0 : 100;
 
   return (
     <Paper
       radius="md"
       withBorder
       onClick={onSelect}
+      className="video-tile"
+      data-size={size}
       style={{
         cursor: onSelect ? "pointer" : "default",
         overflow: "hidden",
         position: "relative",
         height,
         minHeight,
+        width: "100%",
         aspectRatio: size === "filmstrip" ? "16 / 9" : undefined,
         borderColor: isPinned ? "var(--mantine-color-blue-5)" : undefined,
         borderWidth: isPinned ? 2 : 1,
         boxShadow: isPinned ? "0 0 0 2px var(--mantine-color-blue-2)" : undefined,
       }}
     >
-      <Box ref={containerRef} h="100%" w="100%" bg="dark.7" />
+      <Box
+        ref={containerRef}
+        className="video-tile-player"
+        pos="absolute"
+        inset={0}
+        bg="dark.7"
+      />
 
       {!participant.hasVideo && (
         <Box

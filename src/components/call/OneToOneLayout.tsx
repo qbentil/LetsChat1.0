@@ -31,40 +31,38 @@ export function OneToOneLayout({
 }: OneToOneLayoutProps) {
   const local = participants.find((p) => p.isLocal);
   const remote = participants.find((p) => !p.isLocal);
+  const alone = !remote;
 
   return (
-    <Box pos="relative" h="100dvh" bg="black">
-      {remote ? (
-        <VideoTile
-          participant={remote}
-          showName={false}
-          size="stage"
-          isPinned
-        />
+    <Box pos="relative" h="100dvh" bg="black" style={{ overflow: "hidden" }}>
+      {alone ? (
+        local && (
+          <Box h="100%" w="100%">
+            <VideoTile participant={local} showName size="stage" isPinned />
+          </Box>
+        )
       ) : (
-        <Box
-          h="100%"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "var(--mantine-color-dark-8)",
-          }}
-        >
-          <Text c="dimmed">Waiting for others to join…</Text>
-        </Box>
-      )}
-
-      {local && (
-        <Box
-          pos="absolute"
-          top={80}
-          right={16}
-          w={140}
-          style={{ zIndex: 10 }}
-        >
-          <VideoTile participant={local} showName={false} size="filmstrip" />
-        </Box>
+        <>
+          <Box h="100%" w="100%">
+            <VideoTile
+              participant={remote}
+              showName={false}
+              size="stage"
+              isPinned
+            />
+          </Box>
+          {local && (
+            <Box
+              pos="absolute"
+              top={16}
+              right={16}
+              w="clamp(120px, 22vw, 200px)"
+              style={{ zIndex: 10 }}
+            >
+              <VideoTile participant={local} showName={false} size="filmstrip" />
+            </Box>
+          )}
+        </>
       )}
 
       <Badge
@@ -99,6 +97,11 @@ export function OneToOneLayout({
         <Text fw={600} c="white">
           {remote?.displayName ?? roomName}
         </Text>
+        {alone && (
+          <Text size="sm" c="dimmed" mt={4}>
+            Waiting for others to join…
+          </Text>
+        )}
         <CallTimer />
       </Box>
 

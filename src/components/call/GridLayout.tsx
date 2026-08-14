@@ -71,7 +71,7 @@ export function GridLayout({
       <Box flex={1} p="md" style={{ minHeight: 0, display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Desktop / tablet: stage + vertical filmstrip */}
         <Box visibleFrom="sm" style={{ flex: 1, minHeight: 0, display: "flex", gap: 12 }}>
-          <Box style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+          <Box style={{ flex: 1, minWidth: 0, minHeight: 0, height: "100%" }}>
             {spotlight && (
               <VideoTile participant={spotlight} size="stage" isPinned showName />
             )}
@@ -93,7 +93,7 @@ export function GridLayout({
 
         {/* Mobile: stage + horizontal filmstrip */}
         <Box hiddenFrom="sm" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-          <Box style={{ flex: 1, minHeight: "50vh" }}>
+          <Box style={{ flex: 1, minHeight: 0, height: "100%" }}>
             {spotlight && (
               <VideoTile participant={spotlight} size="stage" isPinned showName />
             )}

@@ -75,58 +75,81 @@ export function ChatPanel({
       }
       position="right"
       size="md"
+      styles={{
+        body: {
+          display: "flex",
+          flexDirection: "column",
+          height: "calc(100dvh - 60px)",
+          padding: 0,
+        },
+      }}
     >
-      {!chatReady ? (
-        <Stack align="center" justify="center" h={200} gap="sm">
-          <Loader size="sm" />
-          <Text size="sm" c="dimmed">
-            Connecting chat…
-          </Text>
-        </Stack>
-      ) : messages.length === 0 ? (
-        <Stack align="center" justify="center" h={200} gap="sm">
-          <ThemeIcon size="xl" variant="light" radius="xl">
-            <IconMessage size={20} />
-          </ThemeIcon>
-          <Text size="sm" c="dimmed">
-            No messages yet
-          </Text>
-        </Stack>
-      ) : (
-        <ScrollArea h="calc(100vh - 180px)" viewportRef={viewportRef}>
-          <Stack gap="sm" pb="md">
-            {messages.map((message) => (
-              <Box
-                key={message.id}
-                style={{
-                  alignSelf: message.isLocal ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
-                }}
-              >
-                <Paper
-                  p="sm"
-                  radius="md"
-                  withBorder={!message.isLocal}
-                  bg={message.isLocal ? "blue.6" : undefined}
-                  c={message.isLocal ? "white" : undefined}
-                >
-                  {!message.isLocal && (
-                    <Text size="xs" fw={600} mb={4}>
-                      {message.senderName}
-                    </Text>
-                  )}
-                  <Text size="sm">{message.text}</Text>
-                  <Text size="xs" c={message.isLocal ? "blue.1" : "dimmed"} ta="right" mt={4}>
-                    {formatTime(message.sentAt)}
-                  </Text>
-                </Paper>
-              </Box>
-            ))}
+      <Box flex={1} style={{ minHeight: 0, overflow: "hidden" }} p="md" pb={0}>
+        {!chatReady ? (
+          <Stack align="center" justify="center" h="100%" gap="sm">
+            <Loader size="sm" />
+            <Text size="sm" c="dimmed">
+              Connecting chat…
+            </Text>
           </Stack>
-        </ScrollArea>
-      )}
+        ) : messages.length === 0 ? (
+          <Stack align="center" justify="center" h="100%" gap="sm">
+            <ThemeIcon size="xl" variant="light" radius="xl">
+              <IconMessage size={20} />
+            </ThemeIcon>
+            <Text size="sm" c="dimmed">
+              No messages yet
+            </Text>
+          </Stack>
+        ) : (
+          <ScrollArea h="100%" viewportRef={viewportRef}>
+            <Stack gap="sm" pb="md">
+              {messages.map((message) => (
+                <Box
+                  key={message.id}
+                  style={{
+                    alignSelf: message.isLocal ? "flex-end" : "flex-start",
+                    maxWidth: "85%",
+                  }}
+                >
+                  <Paper
+                    p="sm"
+                    radius="md"
+                    withBorder={!message.isLocal}
+                    bg={message.isLocal ? "blue.6" : undefined}
+                    c={message.isLocal ? "white" : undefined}
+                  >
+                    {!message.isLocal && (
+                      <Text size="xs" fw={600} mb={4}>
+                        {message.senderName}
+                      </Text>
+                    )}
+                    <Text size="sm">{message.text}</Text>
+                    <Text
+                      size="xs"
+                      c={message.isLocal ? "blue.1" : "dimmed"}
+                      ta="right"
+                      mt={4}
+                    >
+                      {formatTime(message.sentAt)}
+                    </Text>
+                  </Paper>
+                </Box>
+              ))}
+            </Stack>
+          </ScrollArea>
+        )}
+      </Box>
 
-      <Group mt="md" align="flex-end">
+      <Group
+        p="md"
+        align="flex-end"
+        gap="sm"
+        style={{
+          flexShrink: 0,
+          borderTop: "1px solid var(--mantine-color-default-border)",
+        }}
+      >
         <TextInput
           flex={1}
           placeholder="Type a message…"

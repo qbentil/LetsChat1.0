@@ -83,6 +83,7 @@ export function useAgoraCall(): UseAgoraCallResult {
   const joiningRef = useRef(false);
   const displayNamesRef = useRef<Map<string, string>>(new Map());
   const rtmRef = useRef<RtmService | null>(null);
+  const audioPublishedRef = useRef(false);
 
   const [status, setStatus] = useState<CallStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +105,7 @@ export function useAgoraCall(): UseAgoraCallResult {
       uid,
       displayNameFor(uid, displayNamesRef.current),
       true,
-      localAudioRef.current?.enabled ?? false,
+      audioPublishedRef.current && (localAudioRef.current?.enabled ?? false),
       localVideoRef.current?.enabled ?? false,
       localVideoRef.current,
       localAudioRef.current,
@@ -120,6 +121,7 @@ export function useAgoraCall(): UseAgoraCallResult {
   const leaveCall = useCallback(async () => {
     joinedRef.current = false;
     joiningRef.current = false;
+    audioPublishedRef.current = false;
 
     localAudioRef.current?.stop();
     localAudioRef.current?.close();
@@ -193,11 +195,13 @@ export function useAgoraCall(): UseAgoraCallResult {
         localAudioRef.current = audioTrack;
         localVideoRef.current = videoTrack;
 
-        if (!micOn) {
-          await audioTrack.setEnabled(false);
+        if (micOn) {
+          await client.publish([audioTrack, videoTrack]);
+          audioPublishedRef.current = true;
+        } else {
+          await client.publish([videoTrack]);
+          audioPublishedRef.current = false;
         }
-
-        await client.publish([audioTrack, videoTrack]);
 
         joinedRef.current = true;
         setStatus("connected");
@@ -229,13 +233,24 @@ export function useAgoraCall(): UseAgoraCallResult {
 
   const toggleMic = useCallback(async () => {
     const track = localAudioRef.current;
-    if (!track) return;
+    const client = clientRef.current;
+    if (!track || !client) return;
 
-    const next = !track.enabled;
-    await track.setEnabled(next);
+    const next = !isMicOn;
+
+    if (next) {
+      await track.setEnabled(true);
+      if (!audioPublishedRef.current) {
+        await client.publish([track]);
+        audioPublishedRef.current = true;
+      }
+    } else if (audioPublishedRef.current) {
+      await track.setEnabled(false);
+    }
+
     setIsMicOn(next);
     syncParticipants();
-  }, [syncParticipants]);
+  }, [isMicOn, syncParticipants]);
 
   const toggleCamera = useCallback(async () => {
     if (!canToggleCamera) return;

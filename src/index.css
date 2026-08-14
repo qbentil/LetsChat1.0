@@ -9,3 +9,11 @@ body,
 body {
   margin: 0;
 }
+
+/* Keep Agora-injected video/canvas inside tile bounds */
+.video-tile .video-tile-player video,
+.video-tile .video-tile-player canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}

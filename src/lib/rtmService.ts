@@ -1,6 +1,9 @@
 import type { MutableRefObject } from "react";
+import AgoraRTM from "agora-rtm-sdk";
 import { AGORA_APP_ID } from "./agora";
 import { fetchAgoraToken } from "./fetchAgoraToken";
+
+const { RTM } = AgoraRTM;
 
 export type RtmPayload =
   | { type: "name"; displayName: string }
@@ -28,12 +31,11 @@ export interface RtmService {
 }
 
 export async function createRtmService(): Promise<RtmService> {
-  const AgoraRTM = (await import("agora-rtm-sdk")).default;
-  let rtmUid = "";
+  let roomId = "";
+  let localUid = "";
   let connected = false;
   let localDisplayName = "";
-  const client = AgoraRTM.createInstance(AGORA_APP_ID);
-  let channel: ReturnType<typeof client.createChannel> | null = null;
+  let client: InstanceType<typeof RTM> | null = null;
   let nameHandler: ((uid: string, displayName: string) => void) | null = null;
   let chatHandler: ((payload: {
     uid: string;
@@ -42,9 +44,9 @@ export async function createRtmService(): Promise<RtmService> {
     sentAt: number;
   }) => void) | null = null;
 
-  const dispatchMessage = (message: { text: string }, memberId: string) => {
+  const dispatchMessage = (messageText: string, memberId: string) => {
     try {
-      const payload = JSON.parse(message.text) as RtmPayload;
+      const payload = JSON.parse(messageText) as RtmPayload;
       if (payload.type === "name" && payload.displayName && nameHandler) {
         nameHandler(memberId, payload.displayName);
       }
@@ -62,48 +64,61 @@ export async function createRtmService(): Promise<RtmService> {
   };
 
   return {
-    async join(roomId, uid, displayName, token) {
-      rtmUid = uid;
+    async join(roomIdParam, uid, displayName, token) {
+      roomId = roomIdParam;
+      localUid = uid;
       localDisplayName = displayName;
-      await client.login({ uid, token });
-      channel = client.createChannel(roomId);
 
-      channel.on("ChannelMessage", (message, memberId) => {
-        dispatchMessage(message, memberId);
+      client = new RTM(AGORA_APP_ID, uid);
+
+      client.addEventListener("message", (event) => {
+        if (event.channelName !== roomId) return;
+        const text = typeof event.message === "string" ? event.message : "";
+        if (!text) return;
+        dispatchMessage(text, event.publisher);
       });
 
-      channel.on("MemberJoined", async (memberId) => {
-        if (memberId === uid) return;
-        await channel?.sendMessage({
-          text: JSON.stringify({ type: "name", displayName: localDisplayName }),
-        });
+      client.addEventListener("presence", (event) => {
+        if (event.channelName !== roomId) return;
+        if (event.eventType === "REMOTE_JOIN" && event.publisher !== localUid) {
+          void client?.publish(
+            roomId,
+            JSON.stringify({ type: "name", displayName: localDisplayName }),
+          );
+        }
       });
 
-      await channel.join();
-      await channel.sendMessage({
-        text: JSON.stringify({ type: "name", displayName }),
-      });
+      await client.login({ token });
+      await client.subscribe(roomId);
+
+      await client.publish(
+        roomId,
+        JSON.stringify({ type: "name", displayName }),
+      );
       nameHandler?.(uid, displayName);
       connected = true;
     },
     async leave() {
       connected = false;
-      if (channel) {
-        await channel.leave().catch(() => undefined);
-        channel = null;
-      }
-      if (rtmUid) {
+      if (client) {
+        if (roomId) {
+          await client.unsubscribe(roomId).catch(() => undefined);
+        }
         await client.logout().catch(() => undefined);
+        client = null;
       }
+      roomId = "";
+      localUid = "";
     },
     async sendChat(text, senderName) {
-      if (!channel || !connected) {
+      if (!client || !connected || !roomId) {
         throw new Error("Chat is not connected yet.");
       }
       const sentAt = Date.now();
-      await channel.sendMessage({
-        text: JSON.stringify({ type: "chat", text, senderName, sentAt }),
-      });
+      await client.publish(
+        roomId,
+        JSON.stringify({ type: "chat", text, senderName, sentAt }),
+      );
     },
     onName(callback) {
       nameHandler = callback;
@@ -141,11 +156,12 @@ export async function connectRtmService(
     await Promise.race([
       service.join(roomId, uid, displayName, rtmToken),
       new Promise((_, reject) => {
-        window.setTimeout(() => reject(new Error("RTM timed out")), 8000);
+        window.setTimeout(() => reject(new Error("RTM timed out")), 15000);
       }),
     ]);
     return service;
-  } catch {
+  } catch (error) {
+    console.error("RTM connection failed:", error);
     return null;
   }
 }
