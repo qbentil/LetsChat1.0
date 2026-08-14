@@ -31,9 +31,19 @@ Open `http://localhost:5173`.
 
 ```env
 VITE_AGORA_APP_ID=your_agora_app_id
+AGORA_APP_CERTIFICATE=your_primary_certificate
 ```
 
-Get your App ID from the [Agora Console](https://console.agora.io/). For development, disable App Certificate or add a token server later.
+- **App ID** — from Agora Console → your project → copy App ID
+- **Primary Certificate** — same page, under Security → Primary Certificate (click copy)
+
+`AGORA_APP_CERTIFICATE` stays on the server only (no `VITE_` prefix) — it is never sent to the browser.
+
+### How tokens work
+
+During `yarn dev`, a local API at `/api/agora/token` generates RTC and RTM tokens using your certificate. The client fetches a token automatically before joining a call.
+
+Restart the dev server after updating `.env`.
 
 ## Usage
 

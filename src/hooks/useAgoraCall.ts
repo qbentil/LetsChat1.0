@@ -6,6 +6,8 @@ import type {
   IMicrophoneAudioTrack,
 } from "agora-rtc-sdk-ng";
 import { AGORA_APP_ID, createAgoraClient, createLocalTracks } from "../lib/agora";
+import { getAgoraJoinErrorMessage } from "../lib/agoraErrors";
+import { fetchAgoraToken } from "../lib/fetchAgoraToken";
 import { connectRtmService, type RtmService } from "../lib/rtmService";
 import { getAnonymousName, getSessionUid } from "../services/roomConfig";
 import { useCallChat } from "./useCallChat";
@@ -178,7 +180,8 @@ export function useAgoraCall(): UseAgoraCallResult {
         });
         client.on("user-unpublished", () => syncParticipants());
 
-        await client.join(AGORA_APP_ID, roomId, null, uid);
+        const rtcToken = await fetchAgoraToken(roomId, uid, "rtc");
+        await client.join(AGORA_APP_ID, roomId, rtcToken, uid);
 
         if (client.remoteUsers.length + 1 > config.maxParticipants) {
           await leaveCall();
@@ -215,16 +218,7 @@ export function useAgoraCall(): UseAgoraCallResult {
         });
       } catch (joinError) {
         await leaveCall();
-
-        let message =
-          joinError instanceof Error ? joinError.message : "Failed to join call";
-
-        if (message.includes("NotAllowedError") || message.includes("Permission")) {
-          message =
-            "Camera or microphone access was denied. Allow permissions and try again.";
-        }
-
-        setError(message);
+        setError(getAgoraJoinErrorMessage(joinError));
         setStatus("error");
       } finally {
         joiningRef.current = false;

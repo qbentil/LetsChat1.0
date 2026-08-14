@@ -1,12 +1,18 @@
 import type { MutableRefObject } from "react";
 import { AGORA_APP_ID } from "./agora";
+import { fetchAgoraToken } from "./fetchAgoraToken";
 
 export type RtmPayload =
   | { type: "name"; displayName: string }
   | { type: "chat"; text: string; senderName: string; sentAt: number };
 
 export interface RtmService {
-  join(roomId: string, uid: string, displayName: string): Promise<void>;
+  join(
+    roomId: string,
+    uid: string,
+    displayName: string,
+    token: string,
+  ): Promise<void>;
   leave(): Promise<void>;
   sendChat(text: string, senderName: string): Promise<void>;
   onName(callback: (uid: string, displayName: string) => void): void;
@@ -56,10 +62,10 @@ export async function createRtmService(): Promise<RtmService> {
   };
 
   return {
-    async join(roomId, uid, displayName) {
+    async join(roomId, uid, displayName, token) {
       rtmUid = uid;
       localDisplayName = displayName;
-      await client.login({ uid, token: null });
+      await client.login({ uid, token });
       channel = client.createChannel(roomId);
 
       channel.on("ChannelMessage", (message, memberId) => {
@@ -131,8 +137,9 @@ export async function connectRtmService(
       onNameUpdate();
     });
     service.onChat(onChatMessage);
+    const rtmToken = await fetchAgoraToken(roomId, uid, "rtm");
     await Promise.race([
-      service.join(roomId, uid, displayName),
+      service.join(roomId, uid, displayName, rtmToken),
       new Promise((_, reject) => {
         window.setTimeout(() => reject(new Error("RTM timed out")), 8000);
       }),

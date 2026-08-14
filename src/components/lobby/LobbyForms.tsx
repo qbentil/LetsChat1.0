@@ -197,6 +197,8 @@ export function CreateRoomForm({ onCreated }: CreateRoomFormProps) {
                 : "Participants can turn their camera on or off during the call."}
             </Text>
           </div>
+
+          <Button type="submit" size="md" leftSection={<IconPlus size={18} />}>
             Create meeting link
           </Button>
         </Stack>
